@@ -39,14 +39,14 @@ cd kasumi
 docker compose up -d
 ```
 
-ブラウザで http://localhost:8000 を開く。
+ブラウザで `http://<ホスト名またはIP>:8000` を開く。
 
 ### Synology NAS での運用
 
 1. NAS に SSH でログイン
 2. リポジトリをクローン
 3. `docker compose up -d` で起動
-4. `http://NAS-IP:8000` でアクセス
+4. `http://<NASのIPアドレス>:8000` でアクセス
 
 データは `./data/kasumi.db`（SQLite）に保存されます。Docker volume でホストにマウントされるためコンテナを削除してもデータは残ります。
 
