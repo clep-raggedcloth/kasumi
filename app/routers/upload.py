@@ -56,4 +56,5 @@ async def upload_statement(
         ))
 
     db.commit()
-    return RedirectResponse(url=f"/?year={year}&month={month}", status_code=303)
+    base = str(request.base_url)
+    return RedirectResponse(url=f"{base}?year={year}&month={month}", status_code=303)

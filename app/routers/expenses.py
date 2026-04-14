@@ -7,8 +7,14 @@ from app.models.database import get_db, FixedExpense
 router = APIRouter(prefix="/fixed-expenses")
 
 
+def _redirect_to_fixed_expenses(request: Request) -> RedirectResponse:
+    url = str(request.base_url) + "fixed-expenses"
+    return RedirectResponse(url=url, status_code=303)
+
+
 @router.post("/add")
 async def add_fixed_expense(
+    request: Request,
     name: str = Form(...),
     amount: int = Form(...),
     category: str = Form(...),
@@ -17,11 +23,12 @@ async def add_fixed_expense(
 ):
     db.add(FixedExpense(name=name, amount=amount, category=category, note=note or None))
     db.commit()
-    return RedirectResponse(url="/fixed-expenses", status_code=303)
+    return _redirect_to_fixed_expenses(request)
 
 
 @router.post("/{expense_id}/toggle")
 async def toggle_fixed_expense(
+    request: Request,
     expense_id: int,
     db: Session = Depends(get_db),
 ):
@@ -29,11 +36,12 @@ async def toggle_fixed_expense(
     if expense:
         expense.active = not expense.active
         db.commit()
-    return RedirectResponse(url="/fixed-expenses", status_code=303)
+    return _redirect_to_fixed_expenses(request)
 
 
 @router.post("/{expense_id}/delete")
 async def delete_fixed_expense(
+    request: Request,
     expense_id: int,
     db: Session = Depends(get_db),
 ):
@@ -41,4 +49,4 @@ async def delete_fixed_expense(
     if expense:
         db.delete(expense)
         db.commit()
-    return RedirectResponse(url="/fixed-expenses", status_code=303)
+    return _redirect_to_fixed_expenses(request)
