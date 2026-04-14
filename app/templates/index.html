@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Kasumi — ホーム{% endblock %}
+{% block content %}
+
+<h1>家計報告書</h1>
+
+<section class="card">
+  <h2>明細をアップロード</h2>
+  <form method="post" action="/upload" enctype="multipart/form-data" class="upload-form">
+    <div class="form-row">
+      <label>年
+        <input type="number" name="year" value="{{ year }}" min="2020" max="2099" required>
+      </label>
+      <label>月
+        <input type="number" name="month" value="{{ month }}" min="1" max="12" required>
+      </label>
+    </div>
+    <div class="form-row">
+      <label>カード会社
+        <select name="card_source">
+          <option value="auto">自動検出</option>
+          <option value="vpass">vpass（三井住友カード）</option>
+        </select>
+      </label>
+    </div>
+    <div class="form-row">
+      <label>CSVファイル
+        <input type="file" name="file" accept=".csv" required>
+      </label>
+    </div>
+    <button type="submit" class="btn">アップロード</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>月を選択</h2>
+  <form method="get" action="/" class="month-form">
+    <div class="form-row">
+      <label>年
+        <input type="number" name="year" value="{{ year }}" min="2020" max="2099" required>
+      </label>
+      <label>月
+        <input type="number" name="month" value="{{ month }}" min="1" max="12" required>
+      </label>
+      <button type="submit" class="btn btn-secondary">表示</button>
+    </div>
+  </form>
+
+  {% if has_data %}
+  <div class="report-actions">
+    <a href="/report?year={{ year }}&month={{ month }}" class="btn">レポートを見る</a>
+    <a href="/report/pdf?year={{ year }}&month={{ month }}" class="btn btn-outline">PDFダウンロード</a>
+  </div>
+  {% else %}
+  <p class="muted">{{ year }}年{{ month }}月のデータはまだアップロードされていません。</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>アップロード済み明細</h2>
+  {% if statements %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>年月</th>
+        <th>ファイル名</th>
+        <th>カード会社</th>
+        <th>アップロード日時</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in statements %}
+      <tr>
+        <td>{{ s.year }}年{{ s.month }}月</td>
+        <td>{{ s.filename }}</td>
+        <td>{{ s.card_source }}</td>
+        <td>{{ s.uploaded_at[:16] | replace("T", " ") }}</td>
+        <td>
+          <a href="/report?year={{ s.year }}&month={{ s.month }}" class="link-sm">レポート</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">まだデータがありません。</p>
+  {% endif %}
+</section>
+
+{% endblock %}

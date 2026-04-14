@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      margin: 20mm 15mm;
+      @bottom-center {
+        content: counter(page) " / " counter(pages);
+        font-size: 9pt;
+        color: #888;
+      }
+    }
+    body {
+      font-family: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+      font-size: 10pt;
+      color: #222;
+      line-height: 1.5;
+    }
+    h1 { font-size: 18pt; text-align: center; margin-bottom: 4mm; }
+    h2 { font-size: 12pt; margin-top: 6mm; margin-bottom: 2mm;
+         border-bottom: 1px solid #ccc; padding-bottom: 1mm; }
+    .summary-grid {
+      display: flex; gap: 10mm; margin: 4mm 0 6mm;
+    }
+    .summary-item {
+      flex: 1; text-align: center; border: 1px solid #ddd;
+      border-radius: 4px; padding: 3mm;
+    }
+    .summary-item.highlight { background: #f0f4ff; border-color: #6b84c4; }
+    .label { display: block; font-size: 9pt; color: #666; }
+    .amount { font-weight: bold; }
+    .large { font-size: 14pt; }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 9pt;
+      margin-bottom: 4mm;
+    }
+    th {
+      background: #f5f5f5; text-align: left; padding: 1.5mm 2mm;
+      border-bottom: 1px solid #ddd;
+    }
+    td { padding: 1mm 2mm; border-bottom: 1px solid #eee; }
+    td.amount { text-align: right; }
+    td.date { white-space: nowrap; }
+    td.muted { color: #888; font-size: 8pt; }
+    .refund { color: #c00; }
+    .badge {
+      background: #e8eaf0; padding: 0 2mm;
+      border-radius: 3px; font-size: 8pt;
+    }
+    .card-subtotal { font-size: 9pt; color: #555; margin: 1mm 0; }
+    .footer-note {
+      margin-top: 8mm; font-size: 8pt; color: #aaa; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<h1>{{ year }}年{{ month }}月 家計報告書</h1>
+
+<div class="summary-grid">
+  <div class="summary-item">
+    <span class="label">クレジット合計</span>
+    <span class="amount large">¥{{ "{:,}".format(card_total) }}</span>
+  </div>
+  <div class="summary-item">
+    <span class="label">固定費合計</span>
+    <span class="amount large">¥{{ "{:,}".format(fixed_total) }}</span>
+  </div>
+  <div class="summary-item highlight">
+    <span class="label">総合計</span>
+    <span class="amount large">¥{{ "{:,}".format(grand_total) }}</span>
+  </div>
+</div>
+
+{% for holder, txns in by_holder.items() %}
+<h2>{{ holder }}</h2>
+<p class="card-subtotal">小計: ¥{{ "{:,}".format(txns | sum(attribute='amount')) }}</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width:12%">日付</th>
+      <th style="width:45%">店舗・サービス</th>
+      <th style="width:15%; text-align:right">金額</th>
+      <th style="width:28%">備考</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in txns %}
+    <tr>
+      <td class="date">{{ t.date.strftime("%m/%d") }}</td>
+      <td>{{ t.merchant }}</td>
+      <td class="amount {{ 'refund' if t.amount < 0 }}">¥{{ "{:,}".format(t.amount) }}</td>
+      <td class="muted">{{ t.memo or "" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endfor %}
+
+{% if fixed_expenses %}
+<h2>固定費（口座引き落とし）</h2>
+<p class="card-subtotal">小計: ¥{{ "{:,}".format(fixed_total) }}</p>
+<table>
+  <thead>
+    <tr>
+      <th style="width:30%">名称</th>
+      <th style="width:20%">カテゴリ</th>
+      <th style="width:20%; text-align:right">金額</th>
+      <th style="width:30%">備考</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in fixed_expenses %}
+    <tr>
+      <td>{{ e.name }}</td>
+      <td><span class="badge">{{ e.category }}</span></td>
+      <td class="amount">¥{{ "{:,}".format(e.amount) }}</td>
+      <td class="muted">{{ e.note or "" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<p class="footer-note">Kasumi — 家計報告書</p>
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Kasumi — {{ year }}年{{ month }}月レポート{% endblock %}
+{% block content %}
+
+<div class="report-header">
+  <h1>{{ year }}年{{ month }}月 家計報告書</h1>
+  <a href="/report/pdf?year={{ year }}&month={{ month }}" class="btn">PDFダウンロード</a>
+</div>
+
+<section class="card summary-card">
+  <h2>サマリー</h2>
+  <div class="summary-grid">
+    <div class="summary-item">
+      <span class="label">クレジット合計</span>
+      <span class="amount large">¥{{ "{:,}".format(card_total) }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="label">固定費合計</span>
+      <span class="amount large">¥{{ "{:,}".format(fixed_total) }}</span>
+    </div>
+    <div class="summary-item highlight">
+      <span class="label">総合計</span>
+      <span class="amount large">¥{{ "{:,}".format(grand_total) }}</span>
+    </div>
+  </div>
+</section>
+
+{% for holder, txns in by_holder.items() %}
+<section class="card">
+  <h2>{{ holder }}</h2>
+  <p class="card-subtotal">小計: <strong>¥{{ "{:,}".format(txns | sum(attribute='amount')) }}</strong></p>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>日付</th>
+        <th>店舗・サービス</th>
+        <th>金額</th>
+        <th>備考</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in txns %}
+      <tr>
+        <td class="date">{{ t.date.strftime("%m/%d") }}</td>
+        <td>{{ t.merchant }}</td>
+        <td class="amount {{ 'refund' if t.amount < 0 }}">¥{{ "{:,}".format(t.amount) }}</td>
+        <td class="muted small">{{ t.memo or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endfor %}
+
+{% if fixed_expenses %}
+<section class="card">
+  <h2>固定費（口座引き落とし）</h2>
+  <p class="card-subtotal">小計: <strong>¥{{ "{:,}".format(fixed_total) }}</strong></p>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>名称</th>
+        <th>カテゴリ</th>
+        <th>金額</th>
+        <th>備考</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in fixed_expenses %}
+      <tr>
+        <td>{{ e.name }}</td>
+        <td><span class="badge">{{ e.category }}</span></td>
+        <td class="amount">¥{{ "{:,}".format(e.amount) }}</td>
+        <td class="muted small">{{ e.note or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% endblock %}

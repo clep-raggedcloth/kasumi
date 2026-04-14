@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Kasumi — 固定費管理{% endblock %}
+{% block content %}
+
+<h1>固定費管理</h1>
+
+<section class="card">
+  <h2>固定費を追加</h2>
+  <form method="post" action="/fixed-expenses/add" class="upload-form">
+    <div class="form-row">
+      <label>名称
+        <input type="text" name="name" placeholder="例：家賃" required>
+      </label>
+      <label>金額（円）
+        <input type="number" name="amount" placeholder="例：80000" min="0" required>
+      </label>
+    </div>
+    <div class="form-row">
+      <label>カテゴリ
+        <select name="category">
+          <option value="住居">住居</option>
+          <option value="光熱費">光熱費</option>
+          <option value="通信">通信</option>
+          <option value="保険">保険</option>
+          <option value="教育">教育</option>
+          <option value="サブスク">サブスク</option>
+          <option value="その他">その他</option>
+        </select>
+      </label>
+      <label>備考
+        <input type="text" name="note" placeholder="例：〇〇銀行から引き落とし">
+      </label>
+    </div>
+    <button type="submit" class="btn">追加</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>登録済み固定費　合計: <span class="amount">¥{{ "{:,}".format(total) }}</span></h2>
+  {% if expenses %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>名称</th>
+        <th>カテゴリ</th>
+        <th>金額</th>
+        <th>備考</th>
+        <th>状態</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in expenses %}
+      <tr class="{{ 'inactive' if not e.active }}">
+        <td>{{ e.name }}</td>
+        <td><span class="badge">{{ e.category }}</span></td>
+        <td class="amount">¥{{ "{:,}".format(e.amount) }}</td>
+        <td class="muted">{{ e.note or "—" }}</td>
+        <td>
+          <form method="post" action="/fixed-expenses/{{ e.id }}/toggle" style="display:inline">
+            <button class="btn-link">{{ "有効" if e.active else "無効" }}</button>
+          </form>
+        </td>
+        <td>
+          <form method="post" action="/fixed-expenses/{{ e.id }}/delete"
+                onsubmit="return confirm('削除しますか？')" style="display:inline">
+            <button class="btn-link danger">削除</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">固定費がまだ登録されていません。</p>
+  {% endif %}
+</section>
+
+{% endblock %}

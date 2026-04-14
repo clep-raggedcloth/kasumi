@@ -1,0 +1,13 @@
+services:
+  kasumi:
+    build: .
+    container_name: kasumi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+      - ./uploads:/uploads
+    environment:
+      - DATABASE_URL=sqlite:////data/kasumi.db
+      - UPLOAD_DIR=/uploads
+    restart: unless-stopped
