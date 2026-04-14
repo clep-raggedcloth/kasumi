@@ -12,7 +12,7 @@
   <div class="summary-grid">
     <div class="summary-item">
       <span class="label">クレジット合計</span>
-      <span class="amount large">¥{{ "{:,}".format(card_total) }}</span>
+      <span class="amount large" id="card-total">¥{{ "{:,}".format(card_total) }}</span>
     </div>
     <div class="summary-item">
       <span class="label">固定費合計</span>
@@ -20,18 +20,24 @@
     </div>
     <div class="summary-item highlight">
       <span class="label">総合計</span>
-      <span class="amount large">¥{{ "{:,}".format(grand_total) }}</span>
+      <span class="amount large" id="grand-total">¥{{ "{:,}".format(grand_total) }}</span>
     </div>
   </div>
+  <p class="muted small" style="margin-top:8px">チェックを外した明細はPDFと合計から除外されます。</p>
 </section>
 
 {% for holder, txns in by_holder.items() %}
 <section class="card">
   <h2>{{ holder }}</h2>
-  <p class="card-subtotal">小計: <strong>¥{{ "{:,}".format(txns | sum(attribute='amount')) }}</strong></p>
+  <p class="card-subtotal">
+    小計: <strong class="holder-subtotal" data-holder="{{ holder }}">
+      ¥{{ "{:,}".format(txns | sum(attribute='amount')) }}
+    </strong>
+  </p>
   <table class="data-table">
     <thead>
       <tr>
+        <th style="width:36px"></th>
         <th>日付</th>
         <th>店舗・サービス</th>
         <th>金額</th>
@@ -40,7 +46,17 @@
     </thead>
     <tbody>
       {% for t in txns %}
-      <tr>
+      <tr class="{{ 'excluded-row' if t.excluded }}" id="row-{{ t.id }}">
+        <td>
+          <input
+            type="checkbox"
+            class="txn-check"
+            data-id="{{ t.id }}"
+            data-amount="{{ t.amount }}"
+            data-holder="{{ holder }}"
+            {{ "" if t.excluded else "checked" }}
+          >
+        </td>
         <td class="date">{{ t.date.strftime("%m/%d") }}</td>
         <td>{{ t.merchant }}</td>
         <td class="amount {{ 'refund' if t.amount < 0 }}">¥{{ "{:,}".format(t.amount) }}</td>
@@ -78,5 +94,53 @@
   </table>
 </section>
 {% endif %}
+
+<script>
+// 初期値をJSで保持
+const fixedTotal = {{ fixed_total }};
+let cardTotal = {{ card_total }};
+
+function fmt(n) {
+  return "¥" + n.toLocaleString("ja-JP");
+}
+
+function updateSummary() {
+  document.getElementById("card-total").textContent = fmt(cardTotal);
+  document.getElementById("grand-total").textContent = fmt(cardTotal + fixedTotal);
+}
+
+// holder小計を再計算
+function recalcHolder(holder) {
+  let sum = 0;
+  document.querySelectorAll(`.txn-check[data-holder="${CSS.escape(holder)}"]`).forEach(cb => {
+    if (cb.checked) sum += parseInt(cb.dataset.amount, 10);
+  });
+  document.querySelectorAll(`.holder-subtotal[data-holder="${CSS.escape(holder)}"]`).forEach(el => {
+    el.textContent = fmt(sum);
+  });
+}
+
+document.querySelectorAll(".txn-check").forEach(cb => {
+  cb.addEventListener("change", async () => {
+    const id = cb.dataset.id;
+    const amount = parseInt(cb.dataset.amount, 10);
+    const row = document.getElementById("row-" + id);
+
+    const res = await fetch(`/transactions/${id}/exclude`, { method: "POST" });
+    const data = await res.json();
+
+    if (data.excluded) {
+      row.classList.add("excluded-row");
+      cardTotal -= amount;
+    } else {
+      row.classList.remove("excluded-row");
+      cardTotal += amount;
+    }
+
+    recalcHolder(cb.dataset.holder);
+    updateSummary();
+  });
+});
+</script>
 
 {% endblock %}

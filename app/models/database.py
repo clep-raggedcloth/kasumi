@@ -41,6 +41,7 @@ class Transaction(Base):
     amount = Column(Integer, nullable=False)
     memo = Column(String)
     category = Column(String)             # カテゴリ（手動or自動）
+    excluded = Column(Boolean, default=False)  # レポートから除外
 
     statement = relationship("Statement", back_populates="transactions")
 
@@ -59,6 +60,14 @@ class FixedExpense(Base):
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    # 既存DBへの後方互換マイグレーション
+    with engine.connect() as conn:
+        from sqlalchemy import text, inspect
+        inspector = inspect(engine)
+        cols = [c["name"] for c in inspector.get_columns("transactions")]
+        if "excluded" not in cols:
+            conn.execute(text("ALTER TABLE transactions ADD COLUMN excluded BOOLEAN DEFAULT 0"))
+            conn.commit()
 
 
 def get_db():

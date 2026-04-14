@@ -110,6 +110,9 @@ input:focus, select:focus { outline: 2px solid var(--primary); border-color: tra
 .data-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr.inactive td { color: var(--muted); text-decoration: line-through; }
+.data-table tr.excluded-row td { color: #bbb; text-decoration: line-through; }
+.data-table tr.excluded-row input[type="checkbox"] { opacity: 0.5; }
+.txn-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 
 /* Amount */
 .amount { font-variant-numeric: tabular-nums; font-weight: 500; }

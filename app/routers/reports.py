@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -11,8 +11,8 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-def _build_report_context(year: int, month: int, db: Session) -> dict:
-    # クレジット明細
+def _build_report_context(year: int, month: int, db: Session, pdf: bool = False) -> dict:
+    # クレジット明細（全件取得）
     txns = db.scalars(
         select(Transaction)
         .join(Statement)
@@ -25,13 +25,16 @@ def _build_report_context(year: int, month: int, db: Session) -> dict:
         select(FixedExpense).where(FixedExpense.active == True)  # noqa: E712
     ).all()
 
-    # カード名義別に集計
+    # カード名義別にグループ化（PDF時は除外済みを含めない）
     by_holder: dict[str, list] = {}
     for t in txns:
+        if pdf and t.excluded:
+            continue
         key = f"{t.card_holder} / {t.card_name}"
         by_holder.setdefault(key, []).append(t)
 
-    card_total = sum(t.amount for t in txns)
+    included = [t for t in txns if not t.excluded]
+    card_total = sum(t.amount for t in included)
     fixed_total = sum(f.amount for f in fixed)
     grand_total = card_total + fixed_total
 
@@ -57,13 +60,23 @@ async def report_page(
     return templates.TemplateResponse("report.html", {"request": request, **ctx})
 
 
+@router.post("/transactions/{txn_id}/exclude")
+async def toggle_exclude(txn_id: int, db: Session = Depends(get_db)):
+    txn = db.get(Transaction, txn_id)
+    if not txn:
+        return JSONResponse({"error": "not found"}, status_code=404)
+    txn.excluded = not txn.excluded
+    db.commit()
+    return JSONResponse({"excluded": txn.excluded, "amount": txn.amount})
+
+
 @router.get("/report/pdf")
 async def report_pdf(
     year: int,
     month: int,
     db: Session = Depends(get_db),
 ):
-    ctx = _build_report_context(year, month, db)
+    ctx = _build_report_context(year, month, db, pdf=True)
     html = templates.get_template("pdf_report.html").render(**ctx)
     pdf_bytes = render_pdf(html)
     filename = f"kasumi_{year}{month:02d}.pdf"
