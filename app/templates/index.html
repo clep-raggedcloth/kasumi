@@ -2,90 +2,197 @@
 {% block title %}Kasumi — ホーム{% endblock %}
 {% block content %}
 
-<h1>家計報告書</h1>
+<h1 class="text-2xl font-bold text-gray-900 mb-6">家計報告書</h1>
 
-<section class="card">
-  <h2>明細をアップロード</h2>
-  <form method="post" action="/upload" enctype="multipart/form-data" class="upload-form">
-    <div class="form-row">
-      <label>年
-        <input type="number" name="year" value="{{ year }}" min="2020" max="2099" required>
-      </label>
-      <label>月
-        <input type="number" name="month" value="{{ month }}" min="1" max="12" required>
-      </label>
-    </div>
-    <div class="form-row">
-      <label>カード会社
-        <select name="card_source">
-          <option value="auto">自動検出</option>
-          <option value="vpass">vpass（三井住友カード）</option>
-        </select>
-      </label>
-    </div>
-    <div class="form-row">
-      <label>CSVファイル
-        <input type="file" name="file" accept=".csv" required>
-      </label>
-    </div>
-    <button type="submit" class="btn">アップロード</button>
-  </form>
-</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
-<section class="card">
-  <h2>月を選択</h2>
-  <form method="get" action="/" class="month-form">
-    <div class="form-row">
-      <label>年
-        <input type="number" name="year" value="{{ year }}" min="2020" max="2099" required>
-      </label>
-      <label>月
-        <input type="number" name="month" value="{{ month }}" min="1" max="12" required>
-      </label>
-      <button type="submit" class="btn btn-secondary">表示</button>
-    </div>
-  </form>
+  <!-- アップロード -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+    <h2 class="text-base font-semibold text-gray-700 mb-4 flex items-center gap-2">
+      <svg class="w-4 h-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      明細をアップロード
+    </h2>
 
-  {% if has_data %}
-  <div class="report-actions">
-    <a href="/report?year={{ year }}&month={{ month }}" class="btn">レポートを見る</a>
-    <a href="/report/pdf?year={{ year }}&month={{ month }}" class="btn btn-outline">PDFダウンロード</a>
+    <form method="post" action="/upload" enctype="multipart/form-data" id="upload-form">
+
+      <!-- ドロップゾーン -->
+      <label id="drop-zone"
+             class="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-indigo-50 hover:border-brand transition-colors mb-4 group">
+        <svg id="drop-icon" class="w-8 h-8 text-gray-400 group-hover:text-brand mb-2 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 16V4m0 0l-4 4m4-4l4 4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3 17v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke-linecap="round"/>
+        </svg>
+        <p id="drop-label" class="text-sm text-gray-500 group-hover:text-brand transition-colors">
+          クリックまたはドラッグ＆ドロップ
+        </p>
+        <p class="text-xs text-gray-400 mt-1">CSV ファイル（Shift-JIS / UTF-8）</p>
+        <input type="file" name="file" accept=".csv" class="hidden" id="file-input" required>
+      </label>
+
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">年</label>
+          <input type="number" name="year" value="{{ year }}" min="2020" max="2099" required
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">月</label>
+          <input type="number" name="month" value="{{ month }}" min="1" max="12" required
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">カード会社</label>
+          <select name="card_source"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent bg-white">
+            <option value="auto">自動検出</option>
+            <option value="vpass">vpass</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-brand hover:bg-brand-dark text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        アップロード
+      </button>
+    </form>
+  </div>
+
+  <!-- 月選択 & レポート -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+    <h2 class="text-base font-semibold text-gray-700 mb-4 flex items-center gap-2">
+      <svg class="w-4 h-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round"/>
+      </svg>
+      月を選択
+    </h2>
+
+    <form method="get" action="/" class="flex gap-2 items-end mb-5">
+      <div class="flex-1">
+        <label class="block text-xs text-gray-500 mb-1">年</label>
+        <input type="number" name="year" value="{{ year }}" min="2020" max="2099"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+      </div>
+      <div class="flex-1">
+        <label class="block text-xs text-gray-500 mb-1">月</label>
+        <input type="number" name="month" value="{{ month }}" min="1" max="12"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent">
+      </div>
+      <button type="submit"
+              class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
+        表示
+      </button>
+    </form>
+
+    {% if has_data %}
+    <div class="flex flex-col gap-2">
+      <a href="/report?year={{ year }}&month={{ month }}"
+         class="flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 17H7A5 5 0 017 7h10a5 5 0 110 10h-2M12 12v5m0 0l-2-2m2 2l2-2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        {{ year }}年{{ month }}月のレポートを見る
+      </a>
+      <a href="/report/pdf?year={{ year }}&month={{ month }}"
+         class="flex items-center justify-center gap-2 border border-brand text-brand hover:bg-indigo-50 font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17a2 2 0 002 2h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v10z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        PDFダウンロード
+      </a>
+    </div>
+    {% else %}
+    <div class="flex items-center gap-2 text-sm text-gray-400 bg-gray-50 rounded-lg px-4 py-3">
+      <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
+      </svg>
+      {{ year }}年{{ month }}月のデータはまだありません
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- アップロード済み一覧 -->
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+  <h2 class="text-base font-semibold text-gray-700 mb-4 flex items-center gap-2">
+    <svg class="w-4 h-4 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l2 2h5a2 2 0 012 2v14a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    アップロード済み明細
+  </h2>
+
+  {% if statements %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="text-left text-xs font-medium text-gray-500 pb-2 pr-4">年月</th>
+          <th class="text-left text-xs font-medium text-gray-500 pb-2 pr-4">ファイル名</th>
+          <th class="text-left text-xs font-medium text-gray-500 pb-2 pr-4">カード会社</th>
+          <th class="text-left text-xs font-medium text-gray-500 pb-2 pr-4">アップロード日時</th>
+          <th class="pb-2"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for s in statements %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="py-2.5 pr-4 font-medium text-gray-800">{{ s.year }}年{{ s.month }}月</td>
+          <td class="py-2.5 pr-4 text-gray-600 max-w-xs truncate">{{ s.filename }}</td>
+          <td class="py-2.5 pr-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-brand">
+              {{ s.card_source }}
+            </span>
+          </td>
+          <td class="py-2.5 pr-4 text-gray-400 text-xs">{{ s.uploaded_at[:16] | replace("T", " ") }}</td>
+          <td class="py-2.5">
+            <a href="/report?year={{ s.year }}&month={{ s.month }}"
+               class="text-xs text-brand hover:underline font-medium">レポート →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
   {% else %}
-  <p class="muted">{{ year }}年{{ month }}月のデータはまだアップロードされていません。</p>
+  <p class="text-sm text-gray-400">まだデータがありません。</p>
   {% endif %}
-</section>
+</div>
 
-<section class="card">
-  <h2>アップロード済み明細</h2>
-  {% if statements %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>年月</th>
-        <th>ファイル名</th>
-        <th>カード会社</th>
-        <th>アップロード日時</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in statements %}
-      <tr>
-        <td>{{ s.year }}年{{ s.month }}月</td>
-        <td>{{ s.filename }}</td>
-        <td>{{ s.card_source }}</td>
-        <td>{{ s.uploaded_at[:16] | replace("T", " ") }}</td>
-        <td>
-          <a href="/report?year={{ s.year }}&month={{ s.month }}" class="link-sm">レポート</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <p class="muted">まだデータがありません。</p>
-  {% endif %}
-</section>
+<script>
+const zone = document.getElementById('drop-zone');
+const input = document.getElementById('file-input');
+const label = document.getElementById('drop-label');
+
+zone.addEventListener('dragover', e => {
+  e.preventDefault();
+  zone.classList.add('border-brand', 'bg-indigo-50');
+});
+zone.addEventListener('dragleave', () => {
+  zone.classList.remove('border-brand', 'bg-indigo-50');
+});
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('border-brand', 'bg-indigo-50');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+    label.textContent = file.name;
+    label.classList.add('text-brand', 'font-medium');
+  }
+});
+input.addEventListener('change', () => {
+  if (input.files[0]) {
+    label.textContent = input.files[0].name;
+    label.classList.add('text-brand', 'font-medium');
+  }
+});
+</script>
 
 {% endblock %}

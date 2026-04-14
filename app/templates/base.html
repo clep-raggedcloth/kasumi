@@ -1,21 +1,53 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" class="h-full bg-gray-50">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Kasumi{% endblock %}</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { DEFAULT: '#4f46e5', light: '#6366f1', dark: '#3730a3' }
+          }
+        }
+      }
+    }
+  </script>
 </head>
-<body>
-  <header class="site-header">
-    <a href="/" class="logo">🌫 Kasumi</a>
-    <nav>
-      <a href="/">ホーム</a>
-      <a href="/fixed-expenses">固定費</a>
-    </nav>
+<body class="h-full flex flex-col text-gray-800">
+
+  <header class="bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-5xl mx-auto px-4 h-14 flex items-center gap-6">
+      <a href="/" class="flex items-center gap-2 font-bold text-brand text-lg tracking-tight">
+        <!-- wave icon -->
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 12 Q6 6 10 12 Q14 18 18 12 Q20 9 22 12" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Kasumi
+      </a>
+      <nav class="flex gap-1 ml-2">
+        <a href="/"
+           class="px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-brand hover:bg-indigo-50 transition-colors">
+          ホーム
+        </a>
+        <a href="/fixed-expenses"
+           class="px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-brand hover:bg-indigo-50 transition-colors">
+          固定費
+        </a>
+      </nav>
+    </div>
   </header>
-  <main class="container">
+
+  <main class="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
     {% block content %}{% endblock %}
   </main>
+
+  <footer class="text-center text-xs text-gray-400 py-4 border-t border-gray-100">
+    Kasumi — 家計報告書アプリ
+  </footer>
+
 </body>
 </html>

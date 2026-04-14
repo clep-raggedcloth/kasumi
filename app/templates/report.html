@@ -2,101 +2,126 @@
 {% block title %}Kasumi — {{ year }}年{{ month }}月レポート{% endblock %}
 {% block content %}
 
-<div class="report-header">
-  <h1>{{ year }}年{{ month }}月 家計報告書</h1>
-  <a href="/report/pdf?year={{ year }}&month={{ month }}" class="btn">PDFダウンロード</a>
+<!-- ページヘッダー -->
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <p class="text-sm text-gray-400 mb-0.5">家計報告書</p>
+    <h1 class="text-2xl font-bold text-gray-900">{{ year }}年{{ month }}月</h1>
+  </div>
+  <a href="/report/pdf?year={{ year }}&month={{ month }}"
+     class="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white font-medium py-2.5 px-5 rounded-lg text-sm transition-colors shadow-sm">
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 10v6m0 0l-3-3m3 3l3-3M3 17a2 2 0 002 2h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v10z" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    PDFダウンロード
+  </a>
 </div>
 
-<section class="card summary-card">
-  <h2>サマリー</h2>
-  <div class="summary-grid">
-    <div class="summary-item">
-      <span class="label">クレジット合計</span>
-      <span class="amount large" id="card-total">¥{{ "{:,}".format(card_total) }}</span>
-    </div>
-    <div class="summary-item">
-      <span class="label">固定費合計</span>
-      <span class="amount large">¥{{ "{:,}".format(fixed_total) }}</span>
-    </div>
-    <div class="summary-item highlight">
-      <span class="label">総合計</span>
-      <span class="amount large" id="grand-total">¥{{ "{:,}".format(grand_total) }}</span>
-    </div>
+<!-- サマリーカード -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+    <p class="text-xs text-gray-400 mb-1">クレジット合計</p>
+    <p class="text-xl font-bold text-gray-800 tabular-nums" id="card-total">¥{{ "{:,}".format(card_total) }}</p>
   </div>
-  <p class="muted small" style="margin-top:8px">チェックを外した明細はPDFと合計から除外されます。</p>
-</section>
+  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+    <p class="text-xs text-gray-400 mb-1">固定費合計</p>
+    <p class="text-xl font-bold text-gray-800 tabular-nums">¥{{ "{:,}".format(fixed_total) }}</p>
+  </div>
+  <div class="bg-brand rounded-2xl shadow-sm p-5">
+    <p class="text-xs text-indigo-200 mb-1">総合計</p>
+    <p class="text-xl font-bold text-white tabular-nums" id="grand-total">¥{{ "{:,}".format(grand_total) }}</p>
+  </div>
+</div>
 
+<p class="text-xs text-gray-400 mb-5">
+  <svg class="w-3.5 h-3.5 inline mr-1 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
+  </svg>
+  チェックを外した明細は合計・PDFから除外されます
+</p>
+
+<!-- 明細テーブル（カード名義別） -->
 {% for holder, txns in by_holder.items() %}
-<section class="card">
-  <h2>{{ holder }}</h2>
-  <p class="card-subtotal">
-    小計: <strong class="holder-subtotal" data-holder="{{ holder }}">
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4 overflow-hidden">
+  <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50">
+    <div>
+      <h2 class="text-sm font-semibold text-gray-700">{{ holder }}</h2>
+    </div>
+    <span class="text-sm font-semibold text-gray-700 tabular-nums holder-subtotal" data-holder="{{ holder }}">
       ¥{{ "{:,}".format(txns | sum(attribute='amount')) }}
-    </strong>
-  </p>
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th style="width:36px"></th>
-        <th>日付</th>
-        <th>店舗・サービス</th>
-        <th>金額</th>
-        <th>備考</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for t in txns %}
-      <tr class="{{ 'excluded-row' if t.excluded }}" id="row-{{ t.id }}">
-        <td>
-          <input
-            type="checkbox"
-            class="txn-check"
-            data-id="{{ t.id }}"
-            data-amount="{{ t.amount }}"
-            data-holder="{{ holder }}"
-            {{ "" if t.excluded else "checked" }}
-          >
-        </td>
-        <td class="date">{{ t.date.strftime("%m/%d") }}</td>
-        <td>{{ t.merchant }}</td>
-        <td class="amount {{ 'refund' if t.amount < 0 }}">¥{{ "{:,}".format(t.amount) }}</td>
-        <td class="muted small">{{ t.memo or "" }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
+    </span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="w-10 px-4 py-2.5"></th>
+          <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5 w-16">日付</th>
+          <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">店舗・サービス</th>
+          <th class="text-right text-xs font-medium text-gray-400 px-4 py-2.5 w-28">金額</th>
+          <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">備考</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for t in txns %}
+        <tr id="row-{{ t.id }}" class="{{ 'opacity-40 line-through' if t.excluded }} hover:bg-gray-50 transition-opacity">
+          <td class="px-4 py-2.5">
+            <input type="checkbox"
+                   class="txn-check w-4 h-4 rounded accent-indigo-600 cursor-pointer"
+                   data-id="{{ t.id }}"
+                   data-amount="{{ t.amount }}"
+                   data-holder="{{ holder }}"
+                   {{ "" if t.excluded else "checked" }}>
+          </td>
+          <td class="px-2 py-2.5 text-gray-400 text-xs whitespace-nowrap">{{ t.date.strftime("%m/%d") }}</td>
+          <td class="px-2 py-2.5 text-gray-700">{{ t.merchant }}</td>
+          <td class="px-4 py-2.5 text-right font-medium tabular-nums {{ 'text-red-500' if t.amount < 0 else 'text-gray-800' }}">
+            ¥{{ "{:,}".format(t.amount) }}
+          </td>
+          <td class="px-2 py-2.5 text-xs text-gray-400 max-w-xs truncate">{{ t.memo or "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endfor %}
 
+<!-- 固定費テーブル -->
 {% if fixed_expenses %}
-<section class="card">
-  <h2>固定費（口座引き落とし）</h2>
-  <p class="card-subtotal">小計: <strong>¥{{ "{:,}".format(fixed_total) }}</strong></p>
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>名称</th>
-        <th>カテゴリ</th>
-        <th>金額</th>
-        <th>備考</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for e in fixed_expenses %}
-      <tr>
-        <td>{{ e.name }}</td>
-        <td><span class="badge">{{ e.category }}</span></td>
-        <td class="amount">¥{{ "{:,}".format(e.amount) }}</td>
-        <td class="muted small">{{ e.note or "" }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
+<div class="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4 overflow-hidden">
+  <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50">
+    <h2 class="text-sm font-semibold text-gray-700">固定費（口座引き落とし）</h2>
+    <span class="text-sm font-semibold text-gray-700 tabular-nums">¥{{ "{:,}".format(fixed_total) }}</span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100">
+          <th class="text-left text-xs font-medium text-gray-400 px-5 py-2.5">名称</th>
+          <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">カテゴリ</th>
+          <th class="text-right text-xs font-medium text-gray-400 px-5 py-2.5 w-28">金額</th>
+          <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">備考</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for e in fixed_expenses %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-5 py-2.5 text-gray-700 font-medium">{{ e.name }}</td>
+          <td class="px-2 py-2.5">
+            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-brand font-medium">{{ e.category }}</span>
+          </td>
+          <td class="px-5 py-2.5 text-right font-medium tabular-nums text-gray-800">¥{{ "{:,}".format(e.amount) }}</td>
+          <td class="px-2 py-2.5 text-xs text-gray-400">{{ e.note or "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endif %}
 
 <script>
-// 初期値をJSで保持
 const fixedTotal = {{ fixed_total }};
 let cardTotal = {{ card_total }};
 
@@ -104,12 +129,6 @@ function fmt(n) {
   return "¥" + n.toLocaleString("ja-JP");
 }
 
-function updateSummary() {
-  document.getElementById("card-total").textContent = fmt(cardTotal);
-  document.getElementById("grand-total").textContent = fmt(cardTotal + fixedTotal);
-}
-
-// holder小計を再計算
 function recalcHolder(holder) {
   let sum = 0;
   document.querySelectorAll(`.txn-check[data-holder="${CSS.escape(holder)}"]`).forEach(cb => {
@@ -130,15 +149,16 @@ document.querySelectorAll(".txn-check").forEach(cb => {
     const data = await res.json();
 
     if (data.excluded) {
-      row.classList.add("excluded-row");
+      row.classList.add("opacity-40", "line-through");
       cardTotal -= amount;
     } else {
-      row.classList.remove("excluded-row");
+      row.classList.remove("opacity-40", "line-through");
       cardTotal += amount;
     }
 
     recalcHolder(cb.dataset.holder);
-    updateSummary();
+    document.getElementById("card-total").textContent = fmt(cardTotal);
+    document.getElementById("grand-total").textContent = fmt(cardTotal + fixedTotal);
   });
 });
 </script>
