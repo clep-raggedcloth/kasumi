@@ -29,6 +29,7 @@ async def index(
     request: Request,
     year: int = None,
     month: int = None,
+    error: str = None,
     db: Session = Depends(get_db),
 ):
     today = date.today()
@@ -53,6 +54,7 @@ async def index(
         "month": month,
         "statements": statements,
         "has_data": has_data,
+        "error": error,
     })
 
 

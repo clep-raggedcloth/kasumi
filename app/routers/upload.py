@@ -2,6 +2,7 @@ import os
 import chardet
 from datetime import datetime, date
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, Request
 from fastapi.responses import RedirectResponse
@@ -31,7 +32,11 @@ async def upload_statement(
     encoding = detected.get("encoding") or "utf-8"
     content = raw.decode(encoding)
 
-    parsed = detect_and_parse(content)
+    try:
+        parsed = detect_and_parse(content)
+    except ValueError as e:
+        params = urlencode({"year": year, "month": month, "error": str(e)})
+        return RedirectResponse(url=f"{str(request.base_url)}?{params}", status_code=303)
 
     stmt = Statement(
         filename=file.filename,
