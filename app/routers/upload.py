@@ -63,3 +63,16 @@ async def upload_statement(
     db.commit()
     base = str(request.base_url)
     return RedirectResponse(url=f"{base}?year={year}&month={month}", status_code=303)
+
+
+@router.post("/statements/{statement_id}/delete")
+async def delete_statement(
+    request: Request,
+    statement_id: int,
+    db: Session = Depends(get_db),
+):
+    stmt = db.get(Statement, statement_id)
+    if stmt:
+        db.delete(stmt)
+        db.commit()
+    return RedirectResponse(url=str(request.base_url), status_code=303)
