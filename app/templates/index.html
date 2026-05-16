@@ -159,8 +159,18 @@
           </td>
           <td class="py-2.5 pr-4 text-gray-400 text-xs">{{ s.uploaded_at[:16] | replace("T", " ") }}</td>
           <td class="py-2.5">
-            <a href="/report?year={{ s.year }}&month={{ s.month }}"
-               class="text-xs text-brand hover:underline font-medium">レポート →</a>
+            <div class="flex items-center justify-end gap-3">
+              <a href="/report?year={{ s.year }}&month={{ s.month }}"
+                 class="text-xs text-brand hover:underline font-medium">レポート →</a>
+              <form method="post" action="/statements/{{ s.id }}/delete"
+                    data-filename="{{ s.filename }}"
+                    class="delete-statement-form inline">
+                <button type="submit"
+                        class="text-xs text-red-500 hover:text-red-700 hover:underline font-medium">
+                  削除
+                </button>
+              </form>
+            </div>
           </td>
         </tr>
         {% endfor %}
@@ -201,6 +211,14 @@ input.addEventListener('change', () => {
     label.textContent = input.files[0].name;
     label.classList.add('text-brand', 'font-medium');
   }
+});
+
+document.querySelectorAll('.delete-statement-form').forEach(form => {
+  form.addEventListener('submit', e => {
+    const name = form.dataset.filename;
+    const msg = `「${name}」を削除しますか？\n（この明細に含まれる全ての取引も削除されます）`;
+    if (!confirm(msg)) e.preventDefault();
+  });
 });
 </script>
 
