@@ -1,5 +1,4 @@
 import os
-import chardet
 from datetime import datetime, date
 from typing import Annotated
 from urllib.parse import urlencode
@@ -17,6 +16,20 @@ router = APIRouter()
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "./uploads")
 
 
+def _decode_statement_csv(raw: bytes) -> str:
+    """対応する文字コードを決定的な順序で試してCSVを文字列化する。"""
+    for encoding in ("utf-8-sig", "cp932"):
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+
+    raise ValueError(
+        "CSVの文字コードを読み取れませんでした。"
+        "UTF-8またはShift_JIS形式のCSVを指定してください。"
+    )
+
+
 @router.post("/upload")
 async def upload_statement(
     request: Request,
@@ -27,12 +40,8 @@ async def upload_statement(
 ):
     raw = await file.read()
 
-    # 文字コードを自動検出してUTF-8に変換
-    detected = chardet.detect(raw)
-    encoding = detected.get("encoding") or "utf-8"
-    content = raw.decode(encoding)
-
     try:
+        content = _decode_statement_csv(raw)
         parsed = detect_and_parse(content)
     except ValueError as e:
         params = urlencode({"year": year, "month": month, "error": str(e)})
@@ -45,22 +54,26 @@ async def upload_statement(
         month=month,
         uploaded_at=datetime.now().isoformat(),
     )
-    db.add(stmt)
-    db.flush()
+    try:
+        db.add(stmt)
+        db.flush()
 
-    for t in parsed.transactions:
-        db.add(Transaction(
-            statement_id=stmt.id,
-            card_holder=t.card_holder,
-            card_number=t.card_number,
-            card_name=t.card_name,
-            date=t.date,
-            merchant=t.merchant,
-            amount=t.amount,
-            memo=t.memo,
-        ))
+        for t in parsed.transactions:
+            db.add(Transaction(
+                statement_id=stmt.id,
+                card_holder=t.card_holder,
+                card_number=t.card_number,
+                card_name=t.card_name,
+                date=t.date,
+                merchant=t.merchant,
+                amount=t.amount,
+                memo=t.memo,
+            ))
 
-    db.commit()
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     base = str(request.base_url)
     return RedirectResponse(url=f"{base}?year={year}&month={month}", status_code=303)
 
