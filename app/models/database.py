@@ -1,7 +1,7 @@
 import os
 from datetime import date
 from typing import Optional, List
-from sqlalchemy import create_engine, Column, Integer, String, Date, Boolean, Text, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Date, Boolean, Text, ForeignKey, Index
 from sqlalchemy.orm import DeclarativeBase, relationship, Session
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/kasumi.db")
@@ -56,6 +56,19 @@ class FixedExpense(Base):
     category = Column(String, nullable=False)  # カテゴリ
     active = Column(Boolean, default=True)      # 有効/無効
     note = Column(String)                       # 備考
+
+
+class CashExpense(Base):
+    """支払日に一度だけ計上する現金払い"""
+    __tablename__ = "cash_expenses"
+    __table_args__ = (Index("ix_cash_expenses_date", "date"),)
+
+    id = Column(Integer, primary_key=True)
+    date = Column(Date, nullable=False)
+    merchant = Column(String, nullable=False)
+    amount = Column(Integer, nullable=False)
+    category = Column(String, nullable=False)
+    memo = Column(String)
 
 
 def init_db():

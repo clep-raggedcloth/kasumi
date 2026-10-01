@@ -26,6 +26,8 @@
 
     <form method="post" action="/upload" enctype="multipart/form-data" id="upload-form">
 
+      <p class="text-xs text-gray-500 mb-4">同じ年月にアップロードした明細は、1つの月次レポートに合算されます。</p>
+
       <!-- ドロップゾーン -->
       <label id="drop-zone"
              class="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-indigo-50 hover:border-brand transition-colors mb-4 group">
@@ -97,15 +99,15 @@
       </button>
     </form>
 
-    {% if has_data %}
     <div class="flex flex-col gap-2">
       <a href="/report?year={{ year }}&month={{ month }}"
          class="flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 17H7A5 5 0 017 7h10a5 5 0 110 10h-2M12 12v5m0 0l-2-2m2 2l2-2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        {{ year }}年{{ month }}月のレポートを見る
+        {{ year }}年{{ month }}月のレポート・現金払い
       </a>
+      {% if has_data %}
       <a href="/report/pdf?year={{ year }}&month={{ month }}"
          class="flex items-center justify-center gap-2 border border-brand text-brand hover:bg-indigo-50 font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -113,13 +115,14 @@
         </svg>
         PDFダウンロード
       </a>
+      {% endif %}
     </div>
-    {% else %}
-    <div class="flex items-center gap-2 text-sm text-gray-400 bg-gray-50 rounded-lg px-4 py-3">
+    {% if not has_data %}
+    <div class="flex items-center gap-2 mt-3 text-sm text-gray-400 bg-gray-50 rounded-lg px-4 py-3">
       <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
       </svg>
-      {{ year }}年{{ month }}月のデータはまだありません
+      {{ year }}年{{ month }}月のデータはまだありません。現金払いはレポート画面から追加できます。
     </div>
     {% endif %}
   </div>
@@ -160,8 +163,6 @@
           <td class="py-2.5 pr-4 text-gray-400 text-xs">{{ s.uploaded_at[:16] | replace("T", " ") }}</td>
           <td class="py-2.5">
             <div class="flex items-center justify-end gap-3">
-              <a href="/report?year={{ s.year }}&month={{ s.month }}"
-                 class="text-xs text-brand hover:underline font-medium">レポート →</a>
               <form method="post" action="/statements/{{ s.id }}/delete"
                     data-filename="{{ s.filename }}"
                     class="delete-statement-form inline">

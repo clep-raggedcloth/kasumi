@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Kasumi — 現金払いを編集{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+  <h1 class="text-xl font-bold text-gray-900 mb-2">現金払いを編集</h1>
+  <p class="text-sm text-gray-500 mb-5">{{ edit_expense.date.year }}年{{ edit_expense.date.month }}月の支払い</p>
+  <form method="post" action="/cash-expenses/{{ edit_expense.id }}/edit">
+    {% include "_cash_edit_fields.html" %}
+    <div class="flex justify-end gap-2 mt-6">
+      <a href="/report?year={{ edit_expense.date.year }}&month={{ edit_expense.date.month }}"
+         class="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</a>
+      <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-lg">保存する</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <label class="text-xs text-gray-500">支払日
+    <input type="date" name="date" value="{{ edit_expense.date.isoformat() if edit_expense else '' }}"
+           min="{{ month_start.isoformat() }}" max="{{ month_end.isoformat() }}" required
+           class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800">
+  </label>
+  <label class="text-xs text-gray-500">金額（円）
+    <input type="number" name="amount" value="{{ edit_expense.amount if edit_expense else '' }}" min="1" required
+           class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800">
+  </label>
+  <label class="text-xs text-gray-500 sm:col-span-2">支払先
+    <input type="text" name="merchant" value="{{ edit_expense.merchant if edit_expense else '' }}" required
+           class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800">
+  </label>
+  <label class="text-xs text-gray-500">カテゴリ
+    <select name="category" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white">
+      {% for category in cash_categories %}
+      <option value="{{ category }}" {{ 'selected' if edit_expense and edit_expense.category == category }}>{{ category }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="text-xs text-gray-500">備考（任意）
+    <input type="text" name="memo" value="{{ (edit_expense.memo or '') if edit_expense else '' }}"
+           class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800">
+  </label>
+</div>

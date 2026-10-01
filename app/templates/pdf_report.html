@@ -67,6 +67,10 @@
     <span class="label">固定費合計</span>
     <span class="amount large">¥{{ "{:,}".format(fixed_total) }}</span>
   </div>
+  <div class="summary-item">
+    <span class="label">現金払い合計</span>
+    <span class="amount large">¥{{ "{:,}".format(cash_total) }}</span>
+  </div>
   <div class="summary-item highlight">
     <span class="label">総合計</span>
     <span class="amount large">¥{{ "{:,}".format(grand_total) }}</span>
@@ -97,6 +101,25 @@
   </tbody>
 </table>
 {% endfor %}
+
+{% if cash_expenses %}
+<h2>現金払い</h2>
+<p class="card-subtotal">小計: ¥{{ "{:,}".format(cash_total) }}</p>
+<table>
+  <thead><tr><th>日付</th><th>支払先</th><th>カテゴリ</th><th style="text-align:right">金額</th><th>備考</th></tr></thead>
+  <tbody>
+    {% for e in cash_expenses %}
+    <tr>
+      <td class="date">{{ e.date.strftime("%m/%d") }}</td>
+      <td>{{ e.merchant }}</td>
+      <td>{{ e.category }}</td>
+      <td class="amount">¥{{ "{:,}".format(e.amount) }}</td>
+      <td class="muted">{{ e.memo or "" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
 
 {% if fixed_expenses %}
 <h2>固定費（口座引き落とし）</h2>

@@ -18,7 +18,7 @@
 </div>
 
 <!-- サマリーカード -->
-<div class="grid grid-cols-3 gap-4 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
     <p class="text-xs text-gray-400 mb-1">クレジット合計</p>
     <p class="text-xl font-bold text-gray-800 tabular-nums" id="card-total">¥{{ "{:,}".format(card_total) }}</p>
@@ -26,6 +26,10 @@
   <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
     <p class="text-xs text-gray-400 mb-1">固定費合計</p>
     <p class="text-xl font-bold text-gray-800 tabular-nums">¥{{ "{:,}".format(fixed_total) }}</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+    <p class="text-xs text-gray-400 mb-1">現金払い合計</p>
+    <p class="text-xl font-bold text-gray-800 tabular-nums" id="cash-total">¥{{ "{:,}".format(cash_total) }}</p>
   </div>
   <div class="bg-brand rounded-2xl shadow-sm p-5">
     <p class="text-xs text-indigo-200 mb-1">総合計</p>
@@ -87,6 +91,91 @@
 </div>
 {% endfor %}
 
+<!-- 現金払い -->
+<div id="cash-expenses-section" data-cash-total="{{ cash_total }}" class="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4 overflow-hidden">
+  <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50">
+    <h2 class="text-sm font-semibold text-gray-700">現金払い</h2>
+    <span class="text-sm font-semibold text-gray-700 tabular-nums">¥{{ "{:,}".format(cash_total) }}</span>
+  </div>
+  <div class="p-5 border-b border-gray-100">
+    <p class="text-xs text-gray-500 mb-3">{{ year }}年{{ month }}月の支払いを登録します。現金の引き出しは登録せず、実際に使った金額を入力してください。</p>
+    <p id="cash-error" role="alert" class="hidden text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 mb-3"></p>
+    <form method="post" action="/cash-expenses/add" data-cash-form class="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
+      <input type="hidden" name="report_year" value="{{ year }}">
+      <input type="hidden" name="report_month" value="{{ month }}">
+      <label class="text-xs text-gray-500">支払日
+        <input type="date" name="date" min="{{ month_start.isoformat() }}" max="{{ month_end.isoformat() }}" required class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-800">
+      </label>
+      <label class="text-xs text-gray-500 md:col-span-2">支払先
+        <input type="text" name="merchant" required placeholder="例：スーパー" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-800">
+      </label>
+      <label class="text-xs text-gray-500">金額（円）
+        <input type="number" name="amount" min="1" required class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-800">
+      </label>
+      <label class="text-xs text-gray-500">カテゴリ
+        <select name="category" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-800 bg-white">
+          {% for category in cash_categories %}<option value="{{ category }}">{{ category }}</option>{% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="bg-brand hover:bg-brand-dark text-white font-medium py-2 px-3 rounded-lg text-sm">追加する</button>
+      <label class="text-xs text-gray-500 col-span-2 md:col-span-6">備考（任意）
+        <input type="text" name="memo" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-2 text-sm text-gray-800">
+      </label>
+    </form>
+  </div>
+  {% if cash_expenses %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead><tr class="border-b border-gray-100">
+        <th class="text-left text-xs font-medium text-gray-400 px-5 py-2.5">日付</th>
+        <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">支払先</th>
+        <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">カテゴリ</th>
+        <th class="text-right text-xs font-medium text-gray-400 px-2 py-2.5">金額</th>
+        <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">備考</th>
+        <th class="px-5 py-2.5"></th>
+      </tr></thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for e in cash_expenses %}
+        <tr>
+          <td class="px-5 py-2.5 text-gray-500 whitespace-nowrap">{{ e.date.strftime("%m/%d") }}</td>
+          <td class="px-2 py-2.5 text-gray-700">{{ e.merchant }}</td>
+          <td class="px-2 py-2.5 text-gray-500">{{ e.category }}</td>
+          <td class="px-2 py-2.5 text-right font-medium tabular-nums">¥{{ "{:,}".format(e.amount) }}</td>
+          <td class="px-2 py-2.5 text-gray-500">{{ e.memo or "" }}</td>
+          <td class="px-5 py-2.5 whitespace-nowrap">
+            <a href="/cash-expenses/{{ e.id }}/edit" data-cash-edit
+                    data-date="{{ e.date.isoformat() }}"
+                    data-merchant="{{ e.merchant }}"
+                    data-amount="{{ e.amount }}"
+                    data-category="{{ e.category }}"
+                    data-memo="{{ e.memo or '' }}"
+                    class="text-brand text-xs hover:underline">編集</a>
+            <form method="post" action="/cash-expenses/{{ e.id }}/delete" data-cash-form class="inline ml-2" onsubmit="return confirm('この現金払いを削除しますか？')">
+              <button type="submit" class="text-red-500 text-xs">削除</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  <dialog id="cash-edit-dialog" aria-labelledby="cash-edit-title" class="w-full max-w-lg max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl p-0 bg-white shadow-xl backdrop:bg-gray-900/50">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <h3 id="cash-edit-title" class="text-base font-semibold text-gray-800">現金払いを編集</h3>
+      <button type="button" data-cash-edit-close aria-label="閉じる" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+    </div>
+    <form method="post" data-cash-form class="p-5">
+      <p id="cash-edit-error" role="alert" class="hidden text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2 mb-4"></p>
+      {% include "_cash_edit_fields.html" %}
+      <div class="flex justify-end gap-2 mt-6">
+        <button type="button" data-cash-edit-close class="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</button>
+        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-lg">保存する</button>
+      </div>
+    </form>
+  </dialog>
+</div>
+
 <!-- 固定費テーブル -->
 {% if fixed_expenses %}
 <div class="bg-white rounded-2xl border border-gray-200 shadow-sm mb-4 overflow-hidden">
@@ -123,11 +212,85 @@
 
 <script>
 const fixedTotal = {{ fixed_total }};
+let cashTotal = {{ cash_total }};
 let cardTotal = {{ card_total }};
 
 function fmt(n) {
   return "¥" + n.toLocaleString("ja-JP");
 }
+
+let cashRequestPending = false;
+
+document.addEventListener("click", event => {
+  const editButton = event.target.closest("[data-cash-edit]");
+  if (editButton) {
+    event.preventDefault();
+    if (cashRequestPending) return;
+    const dialog = document.getElementById("cash-edit-dialog");
+    const form = dialog.querySelector("form");
+    form.action = editButton.href;
+    for (const field of ["date", "merchant", "amount", "category", "memo"]) {
+      form.elements.namedItem(field).value = editButton.dataset[field];
+    }
+    document.getElementById("cash-edit-error").classList.add("hidden");
+    dialog.showModal();
+    return;
+  }
+
+  if (event.target.closest("[data-cash-edit-close]")) {
+    document.getElementById("cash-edit-dialog").close();
+  }
+});
+
+document.addEventListener("click", event => {
+  if (event.target === document.getElementById("cash-edit-dialog")) {
+    event.target.close();
+  }
+});
+
+document.addEventListener("submit", async event => {
+  const form = event.target;
+  if (!form.matches("#cash-expenses-section [data-cash-form]") || event.defaultPrevented) return;
+  event.preventDefault();
+  if (cashRequestPending) return;
+
+  cashRequestPending = true;
+  const button = event.submitter;
+  if (button) button.disabled = true;
+  const errorBox = form.closest("dialog")?.querySelector("[role=alert]") ?? document.getElementById("cash-error");
+  errorBox.classList.add("hidden");
+
+  try {
+    const response = await fetch(form.action, {
+      method: "POST",
+      body: new FormData(form),
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => null);
+      throw new Error(typeof error?.detail === "string" ? error.detail : "入力内容を確認してください。");
+    }
+
+    const reportResponse = await fetch(window.location.href, { cache: "no-store" });
+    if (!reportResponse.ok) throw new Error("表示を更新できませんでした。ページを再読み込みしてください。");
+    const updatedPage = new DOMParser().parseFromString(await reportResponse.text(), "text/html");
+    const updatedSection = updatedPage.getElementById("cash-expenses-section");
+    if (!updatedSection) throw new Error("表示を更新できませんでした。ページを再読み込みしてください。");
+
+    const scrollPosition = window.scrollY;
+    document.getElementById("cash-expenses-section").replaceWith(updatedSection);
+    cashTotal = Number(updatedSection.dataset.cashTotal);
+    document.getElementById("cash-total").textContent = fmt(cashTotal);
+    document.getElementById("grand-total").textContent = fmt(cardTotal + fixedTotal + cashTotal);
+    window.scrollTo(0, scrollPosition);
+  } catch (error) {
+    errorBox.textContent = error.message || "保存できませんでした。もう一度お試しください。";
+    errorBox.classList.remove("hidden");
+  } finally {
+    cashRequestPending = false;
+    if (button) button.disabled = false;
+  }
+});
 
 function recalcHolder(holder) {
   let sum = 0;
@@ -158,7 +321,7 @@ document.querySelectorAll(".txn-check").forEach(cb => {
 
     recalcHolder(cb.dataset.holder);
     document.getElementById("card-total").textContent = fmt(cardTotal);
-    document.getElementById("grand-total").textContent = fmt(cardTotal + fixedTotal);
+    document.getElementById("grand-total").textContent = fmt(cardTotal + fixedTotal + cashTotal);
   });
 });
 </script>
