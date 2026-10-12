@@ -6,8 +6,10 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, File, Form, UploadFile, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
-from app.models.database import get_db, Statement, Transaction
+from app.categories import merchant_key
+from app.models.database import get_db, Statement, Transaction, MerchantCategoryDefault
 from app.parsers.base import detect_and_parse, list_sources
 from app.parsers import vpass  # noqa: F401 — パーサーの登録をトリガー
 
@@ -58,6 +60,13 @@ async def upload_statement(
         db.add(stmt)
         db.flush()
 
+        keys = {merchant_key(t.merchant) for t in parsed.transactions}
+        defaults = {
+            rule.merchant_key: rule.category
+            for rule in db.scalars(
+                select(MerchantCategoryDefault).where(MerchantCategoryDefault.merchant_key.in_(keys))
+            )
+        }
         for t in parsed.transactions:
             db.add(Transaction(
                 statement_id=stmt.id,
@@ -68,6 +77,7 @@ async def upload_statement(
                 merchant=t.merchant,
                 amount=t.amount,
                 memo=t.memo,
+                category=defaults.get(merchant_key(t.merchant)),
             ))
 
         db.commit()

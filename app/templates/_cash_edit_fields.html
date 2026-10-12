@@ -14,6 +14,9 @@
   </label>
   <label class="text-xs text-gray-500">カテゴリ
     <select name="category" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white">
+      {% if edit_expense and edit_expense.category not in cash_categories %}
+      <option value="{{ edit_expense.category }}" selected>{{ edit_expense.category }}</option>
+      {% endif %}
       {% for category in cash_categories %}
       <option value="{{ category }}" {{ 'selected' if edit_expense and edit_expense.category == category }}>{{ category }}</option>
       {% endfor %}

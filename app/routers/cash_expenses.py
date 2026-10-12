@@ -6,11 +6,12 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
+from app.categories import CATEGORIES, validate_category
 from app.models.database import CashExpense, get_db
 
 router = APIRouter(prefix="/cash-expenses")
 templates = Jinja2Templates(directory="app/templates")
-CASH_CATEGORIES = ("食費", "日用品", "交通", "医療", "娯楽", "その他")
+CASH_CATEGORIES = CATEGORIES
 
 
 def _report_redirect(payment_date: date) -> RedirectResponse:
@@ -26,14 +27,14 @@ def _success_response(request: Request, payment_date: date) -> JSONResponse | Re
     return _report_redirect(payment_date)
 
 
-def _fields(merchant: str, amount: int, category: str, memo: str) -> dict:
+def _fields(merchant: str, amount: int, category: str, memo: str, current_category: str | None = None) -> dict:
     merchant = merchant.strip()
     if not merchant:
         raise HTTPException(status_code=422, detail="支払先を入力してください")
     return {
         "merchant": merchant,
         "amount": amount,
-        "category": category.strip() or "その他",
+        "category": validate_category(category, current_category),
         "memo": memo.strip() or None,
     }
 
@@ -96,7 +97,7 @@ async def edit_cash_expense(
         raise HTTPException(status_code=404, detail="現金払いが見つかりません")
     _require_same_month(date, expense.date.year, expense.date.month)
     expense.date = date
-    for field, value in _fields(merchant, amount, category, memo).items():
+    for field, value in _fields(merchant, amount, category, memo, expense.category).items():
         setattr(expense, field, value)
     db.commit()
     return _success_response(request, date)

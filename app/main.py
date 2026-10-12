@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
+from app.categories import CATEGORIES
 from app.models.database import init_db, get_db, Statement, FixedExpense, CashExpense
 from app.routers import upload, expenses, reports, cash_expenses
 
@@ -80,4 +81,5 @@ async def fixed_expenses_page(request: Request, db: Session = Depends(get_db)):
         "request": request,
         "expenses": expenses,
         "total": sum(e.amount for e in expenses if e.active),
+        "categories": CATEGORIES,
     })

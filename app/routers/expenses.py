@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.categories import validate_category
 from app.models.database import get_db, FixedExpense
 
 router = APIRouter(prefix="/fixed-expenses")
@@ -21,7 +22,7 @@ async def add_fixed_expense(
     note: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    db.add(FixedExpense(name=name, amount=amount, category=category, note=note or None))
+    db.add(FixedExpense(name=name, amount=amount, category=validate_category(category), note=note or None))
     db.commit()
     return _redirect_to_fixed_expenses(request)
 

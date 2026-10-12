@@ -37,11 +37,54 @@
   </div>
 </div>
 
+<!-- カテゴリ別支出 -->
+<section id="category-breakdown" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-6" aria-labelledby="category-breakdown-title">
+  <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+    <div>
+      <h2 id="category-breakdown-title" class="text-base font-semibold text-gray-800">カテゴリ別の支出</h2>
+      <p class="text-xs text-gray-500 mt-1">支出構成（返金・調整を除く）</p>
+    </div>
+    <span class="text-sm font-semibold tabular-nums">支出合計 ¥{{ "{:,}".format(category_spend_total) }}</span>
+  </div>
+  {% if category_chart %}
+  <div class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 items-center">
+    <svg class="w-48 h-48 mx-auto" viewBox="0 0 200 200" role="img" aria-label="カテゴリ別支出の円グラフ">
+      {% for item in category_chart %}
+        {% if item.path %}
+        <path d="{{ item.path }}" fill="{{ item.color }}"></path>
+        {% else %}
+        <circle cx="100" cy="100" r="90" fill="{{ item.color }}"></circle>
+        {% endif %}
+      {% endfor %}
+    </svg>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead><tr class="border-b border-gray-100 text-xs text-gray-500">
+          <th class="text-left py-2">カテゴリ</th><th class="text-right py-2">支出額</th><th class="text-right py-2">割合</th>
+        </tr></thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for item in category_chart %}
+          <tr>
+            <td class="py-2"><span class="inline-block w-2.5 h-2.5 rounded-sm mr-2" style="background-color: {{ item.color }}"></span>{{ item.category }}</td>
+            <td class="py-2 text-right tabular-nums">¥{{ "{:,}".format(item.amount) }}</td>
+            <td class="py-2 text-right tabular-nums">{{ "%.1f"|format(item.percent) }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-500 py-6 text-center">この月の支出はありません。</p>
+  {% endif %}
+  <p class="text-xs text-gray-500 mt-4">返金・調整: ¥{{ "{:,}".format(adjustment_total) }}（総合計には反映）</p>
+</section>
+
 <p class="text-xs text-gray-400 mb-5">
   <svg class="w-3.5 h-3.5 inline mr-1 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
   </svg>
-  チェックを外した明細は合計・PDFから除外されます
+  チェックを外した明細は合計・PDFから除外されます。カテゴリの変更を保存すると、次回の同じ支払先の初期カテゴリにも反映されます。
 </p>
 
 <!-- 明細テーブル（カード名義別） -->
@@ -52,7 +95,7 @@
       <h2 class="text-sm font-semibold text-gray-700">{{ holder }}</h2>
     </div>
     <span class="text-sm font-semibold text-gray-700 tabular-nums holder-subtotal" data-holder="{{ holder }}">
-      ¥{{ "{:,}".format(txns | sum(attribute='amount')) }}
+      ¥{{ "{:,}".format(txns | rejectattr('excluded') | sum(attribute='amount')) }}
     </span>
   </div>
   <div class="overflow-x-auto">
@@ -62,8 +105,10 @@
           <th class="w-10 px-4 py-2.5"></th>
           <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5 w-16">日付</th>
           <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">店舗・サービス</th>
+          <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">カテゴリ</th>
           <th class="text-right text-xs font-medium text-gray-400 px-4 py-2.5 w-28">金額</th>
-          <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">備考</th>
+          <th class="text-left text-xs font-medium text-gray-400 px-2 py-2.5">補足</th>
+          <th class="px-2 py-2.5"></th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-50">
@@ -79,10 +124,34 @@
           </td>
           <td class="px-2 py-2.5 text-gray-400 text-xs whitespace-nowrap">{{ t.date.strftime("%m/%d") }}</td>
           <td class="px-2 py-2.5 text-gray-700">{{ t.merchant }}</td>
+          <td class="px-2 py-2.5">
+            <select name="category" form="credit-form-{{ t.id }}" data-credit-field
+                    aria-label="{{ t.merchant }}のカテゴリ"
+                    class="w-full min-w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-brand">
+              <option value="" {{ 'selected' if not t.category }}>未分類</option>
+              {% if t.category and t.category not in credit_categories %}
+              <option value="{{ t.category }}" selected>{{ t.category }}</option>
+              {% endif %}
+              {% for category in credit_categories %}
+              <option value="{{ category }}" {{ 'selected' if t.category == category }}>{{ category }}</option>
+              {% endfor %}
+            </select>
+          </td>
           <td class="px-4 py-2.5 text-right font-medium tabular-nums {{ 'text-red-500' if t.amount < 0 else 'text-gray-800' }}">
             ¥{{ "{:,}".format(t.amount) }}
           </td>
-          <td class="px-2 py-2.5 text-xs text-gray-400 max-w-xs truncate">{{ t.memo or "" }}</td>
+          <td class="px-2 py-2.5 text-xs text-gray-500 min-w-48">
+            <input type="text" id="credit-note-{{ t.id }}" name="user_note" form="credit-form-{{ t.id }}" data-credit-field maxlength="500"
+                   aria-label="{{ t.merchant }}の補足" placeholder="購入したものなど" value="{{ t.user_note or '' }}"
+                   class="w-full min-w-40 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand">
+          </td>
+          <td class="px-2 py-2.5 min-w-24">
+            <form id="credit-form-{{ t.id }}" action="/transactions/{{ t.id }}/edit" method="post" data-credit-form class="flex flex-col items-start gap-1">
+              <button type="submit" data-credit-save class="text-brand text-xs font-medium hover:underline disabled:opacity-50">保存</button>
+              <button type="button" data-credit-cancel hidden class="text-gray-500 text-xs hover:underline">元に戻す</button>
+              <span data-credit-status role="status" aria-live="polite" class="text-xs text-gray-500"></span>
+            </form>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -211,15 +280,102 @@
 {% endif %}
 
 <script>
-const fixedTotal = {{ fixed_total }};
-let cashTotal = {{ cash_total }};
-let cardTotal = {{ card_total }};
-
-function fmt(n) {
-  return "¥" + n.toLocaleString("ja-JP");
+let cashRequestPending = false;
+const creditDraftStorageKey = "kasumi-credit-drafts:" + window.location.pathname + window.location.search;
+let pendingCreditDrafts = {};
+try {
+  pendingCreditDrafts = JSON.parse(sessionStorage.getItem(creditDraftStorageKey) || "{}");
+  sessionStorage.removeItem(creditDraftStorageKey);
+} catch (_) {
+  pendingCreditDrafts = {};
 }
 
-let cashRequestPending = false;
+function preserveCreditDrafts(exceptFormId = null) {
+  const drafts = {};
+  document.querySelectorAll("[data-credit-form]").forEach(form => {
+    if (form.id === exceptFormId) return;
+    drafts[form.id] = {
+      category: form.elements.namedItem("category").value,
+      note: form.elements.namedItem("user_note").value,
+    };
+  });
+  try {
+    sessionStorage.setItem(creditDraftStorageKey, JSON.stringify(drafts));
+  } catch (_) {
+    // Storage may be unavailable; the current operation can still complete.
+  }
+}
+
+document.querySelectorAll("[data-credit-form]").forEach(form => {
+  const category = form.elements.namedItem("category");
+  const note = form.elements.namedItem("user_note");
+  const save = form.querySelector("[data-credit-save]");
+  const cancel = form.querySelector("[data-credit-cancel]");
+  const status = form.querySelector("[data-credit-status]");
+  const original = { category: category.value, note: note.value };
+
+  function updateDirtyState() {
+    const dirty = category.value !== original.category || note.value !== original.note;
+    save.hidden = !dirty;
+    cancel.hidden = !dirty;
+    status.classList.remove("text-red-600");
+    status.textContent = dirty ? "未保存" : "";
+  }
+
+  save.hidden = true;
+  category.addEventListener("change", updateDirtyState);
+  note.addEventListener("input", updateDirtyState);
+  cancel.addEventListener("click", () => {
+    category.value = original.category;
+    note.value = original.note;
+    updateDirtyState();
+  });
+  const pendingDraft = pendingCreditDrafts[form.id];
+  if (pendingDraft) {
+    category.value = pendingDraft.category;
+    note.value = pendingDraft.note;
+    updateDirtyState();
+  }
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (form.dataset.saving === "true") return;
+    form.dataset.saving = "true";
+    category.disabled = true;
+    note.disabled = true;
+    save.disabled = true;
+    cancel.disabled = true;
+    status.textContent = "保存中…";
+    status.classList.remove("text-red-600");
+
+    try {
+      // 無効化した入力はFormDataから除外されるため、送信直前の値を明示する。
+      const data = new FormData();
+      data.set("category", category.value);
+      data.set("user_note", note.value);
+      const response = await fetch(form.action, {
+        method: "POST",
+        body: data,
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(typeof error?.detail === "string" ? error.detail : "保存できませんでした。もう一度お試しください。");
+      }
+      status.textContent = "保存済み";
+      preserveCreditDrafts(form.id);
+      window.location.reload();
+    } catch (error) {
+      status.textContent = error.message || "保存できませんでした。もう一度お試しください。";
+      status.classList.add("text-red-600");
+      category.disabled = false;
+      note.disabled = false;
+      save.disabled = false;
+      cancel.disabled = false;
+      form.dataset.saving = "false";
+    }
+  });
+});
+pendingCreditDrafts = {};
 
 document.addEventListener("click", event => {
   const editButton = event.target.closest("[data-cash-edit]");
@@ -271,18 +427,8 @@ document.addEventListener("submit", async event => {
       throw new Error(typeof error?.detail === "string" ? error.detail : "入力内容を確認してください。");
     }
 
-    const reportResponse = await fetch(window.location.href, { cache: "no-store" });
-    if (!reportResponse.ok) throw new Error("表示を更新できませんでした。ページを再読み込みしてください。");
-    const updatedPage = new DOMParser().parseFromString(await reportResponse.text(), "text/html");
-    const updatedSection = updatedPage.getElementById("cash-expenses-section");
-    if (!updatedSection) throw new Error("表示を更新できませんでした。ページを再読み込みしてください。");
-
-    const scrollPosition = window.scrollY;
-    document.getElementById("cash-expenses-section").replaceWith(updatedSection);
-    cashTotal = Number(updatedSection.dataset.cashTotal);
-    document.getElementById("cash-total").textContent = fmt(cashTotal);
-    document.getElementById("grand-total").textContent = fmt(cardTotal + fixedTotal + cashTotal);
-    window.scrollTo(0, scrollPosition);
+    preserveCreditDrafts();
+    window.location.reload();
   } catch (error) {
     errorBox.textContent = error.message || "保存できませんでした。もう一度お試しください。";
     errorBox.classList.remove("hidden");
@@ -292,36 +438,20 @@ document.addEventListener("submit", async event => {
   }
 });
 
-function recalcHolder(holder) {
-  let sum = 0;
-  document.querySelectorAll(`.txn-check[data-holder="${CSS.escape(holder)}"]`).forEach(cb => {
-    if (cb.checked) sum += parseInt(cb.dataset.amount, 10);
-  });
-  document.querySelectorAll(`.holder-subtotal[data-holder="${CSS.escape(holder)}"]`).forEach(el => {
-    el.textContent = fmt(sum);
-  });
-}
-
 document.querySelectorAll(".txn-check").forEach(cb => {
   cb.addEventListener("change", async () => {
     const id = cb.dataset.id;
-    const amount = parseInt(cb.dataset.amount, 10);
-    const row = document.getElementById("row-" + id);
-
-    const res = await fetch(`/transactions/${id}/exclude`, { method: "POST" });
-    const data = await res.json();
-
-    if (data.excluded) {
-      row.classList.add("opacity-40", "line-through");
-      cardTotal -= amount;
-    } else {
-      row.classList.remove("opacity-40", "line-through");
-      cardTotal += amount;
+    cb.disabled = true;
+    try {
+      const res = await fetch(`/transactions/${id}/exclude`, { method: "POST" });
+      if (!res.ok) throw new Error("明細の除外状態を変更できませんでした。");
+      preserveCreditDrafts();
+      window.location.reload();
+    } catch (error) {
+      cb.checked = !cb.checked;
+      cb.disabled = false;
+      alert(error.message);
     }
-
-    recalcHolder(cb.dataset.holder);
-    document.getElementById("card-total").textContent = fmt(cardTotal);
-    document.getElementById("grand-total").textContent = fmt(cardTotal + fixedTotal + cashTotal);
   });
 });
 </script>

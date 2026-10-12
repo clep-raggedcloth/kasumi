@@ -35,13 +35,7 @@
           <label class="block text-xs text-gray-500 mb-1">カテゴリ</label>
           <select name="category"
                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent bg-white">
-            <option value="住居">住居</option>
-            <option value="光熱費">光熱費</option>
-            <option value="通信">通信</option>
-            <option value="保険">保険</option>
-            <option value="教育">教育</option>
-            <option value="サブスク">サブスク</option>
-            <option value="その他">その他</option>
+            {% for category in categories %}<option value="{{ category }}" {{ 'selected' if category == '住居' }}>{{ category }}</option>{% endfor %}
           </select>
         </div>
         <div>

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Kasumi — クレジット明細を編集{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+  <h1 class="text-xl font-bold text-gray-900 mb-4">クレジット明細を編集</h1>
+  <dl class="grid grid-cols-3 gap-2 text-sm mb-5">
+    <dt class="text-gray-500">利用日</dt><dd class="col-span-2">{{ edit_transaction.date.strftime('%Y/%m/%d') }}</dd>
+    <dt class="text-gray-500">支払先</dt><dd class="col-span-2">{{ edit_transaction.merchant }}</dd>
+    <dt class="text-gray-500">金額</dt><dd class="col-span-2">¥{{ "{:,}".format(edit_transaction.amount) }}</dd>
+  </dl>
+  <form method="post" action="/transactions/{{ edit_transaction.id }}/edit">
+    {% include "_transaction_edit_fields.html" %}
+    <div class="flex justify-end gap-2 mt-6">
+      <a href="/report?year={{ edit_transaction.statement.year }}&month={{ edit_transaction.statement.month }}"
+         class="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">キャンセル</a>
+      <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-brand hover:bg-brand-dark rounded-lg">保存する</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

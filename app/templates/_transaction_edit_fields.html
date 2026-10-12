@@ -1,0 +1,18 @@
+<div class="space-y-4">
+  <label class="block text-xs text-gray-500">カテゴリ
+    <select name="category" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800 bg-white">
+      <option value="" {{ 'selected' if not edit_transaction or not edit_transaction.category }}>未分類</option>
+      {% if edit_transaction and edit_transaction.category and edit_transaction.category not in credit_categories %}
+      <option value="{{ edit_transaction.category }}" selected>{{ edit_transaction.category }}</option>
+      {% endif %}
+      {% for category in credit_categories %}
+      <option value="{{ category }}" {{ 'selected' if edit_transaction and edit_transaction.category == category }}>{{ category }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="block text-xs text-gray-500">補足（任意）
+    <input type="text" name="user_note" maxlength="500" placeholder="例：Amazonで買った洗剤"
+           value="{{ edit_transaction.user_note or '' if edit_transaction else '' }}"
+           class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-800">
+  </label>
+</div>

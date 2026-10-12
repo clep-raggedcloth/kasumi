@@ -40,10 +40,20 @@ class Transaction(Base):
     merchant = Column(String, nullable=False)
     amount = Column(Integer, nullable=False)
     memo = Column(String)
+    user_note = Column(Text)
     category = Column(String)             # カテゴリ（手動or自動）
     excluded = Column(Boolean, default=False)  # レポートから除外
 
     statement = relationship("Statement", back_populates="transactions")
+
+
+class MerchantCategoryDefault(Base):
+    """次回アップロードする明細に適用する支払先別カテゴリ"""
+    __tablename__ = "merchant_category_defaults"
+
+    merchant_key = Column(String, primary_key=True)
+    category = Column(String, nullable=False)
+    updated_at = Column(String, nullable=False)
 
 
 class FixedExpense(Base):
@@ -80,7 +90,9 @@ def init_db():
         cols = [c["name"] for c in inspector.get_columns("transactions")]
         if "excluded" not in cols:
             conn.execute(text("ALTER TABLE transactions ADD COLUMN excluded BOOLEAN DEFAULT 0"))
-            conn.commit()
+        if "user_note" not in cols:
+            conn.execute(text("ALTER TABLE transactions ADD COLUMN user_note TEXT"))
+        conn.commit()
 
 
 def get_db():

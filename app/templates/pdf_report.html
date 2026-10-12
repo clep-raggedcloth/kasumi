@@ -52,6 +52,9 @@
     .footer-note {
       margin-top: 8mm; font-size: 8pt; color: #aaa; text-align: center;
     }
+    .category-layout { table-layout: fixed; }
+    .category-layout > tbody > tr > td { vertical-align: middle; border: 0; padding: 0 3mm 0 0; }
+    .category-layout svg { width: 45mm; height: 45mm; }
   </style>
 </head>
 <body>
@@ -77,16 +80,54 @@
   </div>
 </div>
 
+<h2>カテゴリ別の支出</h2>
+<p class="card-subtotal">支出構成（返金・調整を除く）: ¥{{ "{:,}".format(category_spend_total) }}</p>
+{% if category_chart %}
+<table class="category-layout">
+  <tbody><tr>
+    <td style="width:50mm">
+      <svg viewBox="0 0 200 200" role="img" aria-label="カテゴリ別支出の円グラフ">
+        {% for item in category_chart %}
+          {% if item.path %}
+          <path d="{{ item.path }}" fill="{{ item.color }}" />
+          {% else %}
+          <circle cx="100" cy="100" r="90" fill="{{ item.color }}" />
+          {% endif %}
+        {% endfor %}
+      </svg>
+    </td>
+    <td>
+      <table>
+        <thead><tr><th>カテゴリ</th><th style="text-align:right">支出額</th><th style="text-align:right">割合</th></tr></thead>
+        <tbody>
+          {% for item in category_chart %}
+          <tr>
+            <td><span style="display:inline-block;width:7px;height:7px;background:{{ item.color }}"></span> {{ item.category }}</td>
+            <td class="amount">¥{{ "{:,}".format(item.amount) }}</td>
+            <td class="amount">{{ "%.1f"|format(item.percent) }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </td>
+  </tr></tbody>
+</table>
+{% else %}
+<p>この月の支出はありません。</p>
+{% endif %}
+<p class="card-subtotal">返金・調整: ¥{{ "{:,}".format(adjustment_total) }}（総合計には反映）</p>
+
 {% for holder, txns in by_holder.items() %}
 <h2>{{ holder }}</h2>
 <p class="card-subtotal">小計: ¥{{ "{:,}".format(txns | sum(attribute='amount')) }}</p>
 <table>
   <thead>
     <tr>
-      <th style="width:12%">日付</th>
-      <th style="width:45%">店舗・サービス</th>
-      <th style="width:15%; text-align:right">金額</th>
-      <th style="width:28%">備考</th>
+      <th style="width:10%">日付</th>
+      <th style="width:25%">店舗・サービス</th>
+      <th style="width:12%">カテゴリ</th>
+      <th style="width:13%; text-align:right">金額</th>
+      <th style="width:40%">補足</th>
     </tr>
   </thead>
   <tbody>
@@ -94,8 +135,9 @@
     <tr>
       <td class="date">{{ t.date.strftime("%m/%d") }}</td>
       <td>{{ t.merchant }}</td>
+      <td>{{ t.category or '未分類' }}</td>
       <td class="amount {{ 'refund' if t.amount < 0 }}">¥{{ "{:,}".format(t.amount) }}</td>
-      <td class="muted">{{ t.memo or "" }}</td>
+      <td class="muted">{{ t.user_note or '' }}</td>
     </tr>
     {% endfor %}
   </tbody>
