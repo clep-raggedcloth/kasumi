@@ -44,11 +44,10 @@
       <h2 id="category-breakdown-title" class="text-base font-semibold text-gray-800">カテゴリ別の支出</h2>
       <p class="text-xs text-gray-500 mt-1">支出構成（返金・調整を除く）</p>
     </div>
-    <span class="text-sm font-semibold tabular-nums">支出合計 ¥{{ "{:,}".format(category_spend_total) }}</span>
+    <span id="category-spend-total" class="text-sm font-semibold tabular-nums">支出合計 ¥{{ "{:,}".format(category_spend_total) }}</span>
   </div>
-  {% if category_chart %}
-  <div class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 items-center">
-    <svg class="w-48 h-48 mx-auto" viewBox="0 0 200 200" role="img" aria-label="カテゴリ別支出の円グラフ">
+  <div id="category-chart-container" class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 items-center" {{ 'hidden' if not category_chart }}>
+    <svg id="category-chart-pie" class="w-48 h-48 mx-auto" viewBox="0 0 200 200" role="img" aria-label="カテゴリ別支出の円グラフ">
       {% for item in category_chart %}
         {% if item.path %}
         <path d="{{ item.path }}" fill="{{ item.color }}"></path>
@@ -62,7 +61,7 @@
         <thead><tr class="border-b border-gray-100 text-xs text-gray-500">
           <th class="text-left py-2">カテゴリ</th><th class="text-right py-2">支出額</th><th class="text-right py-2">割合</th>
         </tr></thead>
-        <tbody class="divide-y divide-gray-50">
+        <tbody id="category-chart-rows" class="divide-y divide-gray-50">
           {% for item in category_chart %}
           <tr>
             <td class="py-2"><span class="inline-block w-2.5 h-2.5 rounded-sm mr-2" style="background-color: {{ item.color }}"></span>{{ item.category }}</td>
@@ -74,17 +73,16 @@
       </table>
     </div>
   </div>
-  {% else %}
-  <p class="text-sm text-gray-500 py-6 text-center">この月の支出はありません。</p>
-  {% endif %}
-  <p class="text-xs text-gray-500 mt-4">返金・調整: ¥{{ "{:,}".format(adjustment_total) }}（総合計には反映）</p>
+  </div>
+  <p id="category-empty-state" class="text-sm text-gray-500 py-6 text-center" {{ 'hidden' if category_chart }}>この月の支出はありません。</p>
+  <p class="text-xs text-gray-500 mt-4">返金・調整: <span id="adjustment-total">¥{{ "{:,}".format(adjustment_total) }}</span>（総合計には反映）</p>
 </section>
 
 <p class="text-xs text-gray-400 mb-5">
   <svg class="w-3.5 h-3.5 inline mr-1 -mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01" stroke-linecap="round"/>
   </svg>
-  チェックを外した明細は合計・PDFから除外されます。カテゴリの変更を保存すると、次回の同じ支払先の初期カテゴリにも反映されます。
+  チェックを外した明細は合計・PDFから除外されます。カテゴリの変更は自動保存され、次回の同じ支払先の初期カテゴリにも反映されます。
 </p>
 
 <!-- 明細テーブル（カード名義別） -->
@@ -148,7 +146,6 @@
           <td class="px-2 py-2.5 min-w-24">
             <form id="credit-form-{{ t.id }}" action="/transactions/{{ t.id }}/edit" method="post" data-credit-form class="flex flex-col items-start gap-1">
               <button type="submit" data-credit-save class="text-brand text-xs font-medium hover:underline disabled:opacity-50">保存</button>
-              <button type="button" data-credit-cancel hidden class="text-gray-500 text-xs hover:underline">元に戻す</button>
               <span data-credit-status role="status" aria-live="polite" class="text-xs text-gray-500"></span>
             </form>
           </td>
@@ -306,76 +303,156 @@ function preserveCreditDrafts(exceptFormId = null) {
   }
 }
 
+function formatYen(value) {
+  return "¥" + Number(value).toLocaleString("ja-JP");
+}
+
+function updateCategoryBreakdown(data) {
+  const svgNamespace = "http://www.w3.org/2000/svg";
+  const pie = document.getElementById("category-chart-pie");
+  const rows = document.getElementById("category-chart-rows");
+  pie.replaceChildren();
+  rows.replaceChildren();
+
+  for (const item of data.category_chart) {
+    if (item.path) {
+      const path = document.createElementNS(svgNamespace, "path");
+      path.setAttribute("d", item.path);
+      path.setAttribute("fill", item.color);
+      pie.append(path);
+    } else {
+      const circle = document.createElementNS(svgNamespace, "circle");
+      circle.setAttribute("cx", "100");
+      circle.setAttribute("cy", "100");
+      circle.setAttribute("r", "90");
+      circle.setAttribute("fill", item.color);
+      pie.append(circle);
+    }
+
+    const row = document.createElement("tr");
+    const categoryCell = document.createElement("td");
+    categoryCell.className = "py-2";
+    const swatch = document.createElement("span");
+    swatch.className = "inline-block w-2.5 h-2.5 rounded-sm mr-2";
+    swatch.style.backgroundColor = item.color;
+    categoryCell.append(swatch, document.createTextNode(item.category));
+    const amountCell = document.createElement("td");
+    amountCell.className = "py-2 text-right tabular-nums";
+    amountCell.textContent = formatYen(item.amount);
+    const percentCell = document.createElement("td");
+    percentCell.className = "py-2 text-right tabular-nums";
+    percentCell.textContent = Number(item.percent).toFixed(1) + "%";
+    row.append(categoryCell, amountCell, percentCell);
+    rows.append(row);
+  }
+
+  const hasSpending = data.category_chart.length > 0;
+  document.getElementById("category-chart-container").hidden = !hasSpending;
+  document.getElementById("category-empty-state").hidden = hasSpending;
+  document.getElementById("category-spend-total").textContent = "支出合計 " + formatYen(data.category_spend_total);
+  document.getElementById("adjustment-total").textContent = formatYen(data.adjustment_total);
+}
+
 document.querySelectorAll("[data-credit-form]").forEach(form => {
   const category = form.elements.namedItem("category");
   const note = form.elements.namedItem("user_note");
   const save = form.querySelector("[data-credit-save]");
-  const cancel = form.querySelector("[data-credit-cancel]");
   const status = form.querySelector("[data-credit-status]");
   const original = { category: category.value, note: note.value };
+  const state = { timer: null, inFlight: false };
 
-  function updateDirtyState() {
-    const dirty = category.value !== original.category || note.value !== original.note;
-    save.hidden = !dirty;
-    cancel.hidden = !dirty;
+  function isDirty() {
+    return category.value !== original.category || note.value !== original.note;
+  }
+
+  function scheduleSave(delay = 700) {
+    clearTimeout(state.timer);
+    if (!isDirty()) {
+      form.dataset.creditDirty = "false";
+      save.hidden = true;
+      status.textContent = "";
+      status.classList.remove("text-red-600");
+      return;
+    }
+    form.dataset.creditDirty = "true";
+    status.textContent = "";
     status.classList.remove("text-red-600");
-    status.textContent = dirty ? "未保存" : "";
+    save.hidden = true;
+    if (!state.inFlight) state.timer = setTimeout(saveRow, delay);
   }
 
-  save.hidden = true;
-  category.addEventListener("change", updateDirtyState);
-  note.addEventListener("input", updateDirtyState);
-  cancel.addEventListener("click", () => {
-    category.value = original.category;
-    note.value = original.note;
-    updateDirtyState();
-  });
-  const pendingDraft = pendingCreditDrafts[form.id];
-  if (pendingDraft) {
-    category.value = pendingDraft.category;
-    note.value = pendingDraft.note;
-    updateDirtyState();
-  }
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-    if (form.dataset.saving === "true") return;
-    form.dataset.saving = "true";
-    category.disabled = true;
-    note.disabled = true;
-    save.disabled = true;
-    cancel.disabled = true;
+  async function saveRow() {
+    clearTimeout(state.timer);
+    if (state.inFlight || !isDirty()) return;
+    state.inFlight = true;
+    const submitted = { category: category.value, note: note.value };
+    const categoryChanged = submitted.category !== original.category;
+    save.hidden = true;
     status.textContent = "保存中…";
     status.classList.remove("text-red-600");
 
     try {
-      // 無効化した入力はFormDataから除外されるため、送信直前の値を明示する。
       const data = new FormData();
-      data.set("category", category.value);
-      data.set("user_note", note.value);
+      data.set("category", submitted.category);
+      data.set("user_note", submitted.note);
       const response = await fetch(form.action, {
         method: "POST",
         body: data,
         headers: { "X-Requested-With": "XMLHttpRequest" },
       });
+      const result = await response.json().catch(() => null);
       if (!response.ok) {
-        const error = await response.json().catch(() => null);
-        throw new Error(typeof error?.detail === "string" ? error.detail : "保存できませんでした。もう一度お試しください。");
+        throw new Error(typeof result?.detail === "string" ? result.detail : "保存できませんでした。もう一度お試しください。");
       }
-      status.textContent = "保存済み";
-      preserveCreditDrafts(form.id);
-      window.location.reload();
+
+      if (categoryChanged) updateCategoryBreakdown(result);
+      original.category = result.category;
+      original.note = result.user_note;
+      state.inFlight = false;
+      if (isDirty()) {
+        scheduleSave(0);
+      } else {
+        form.dataset.creditDirty = "false";
+        status.textContent = "保存済み";
+        setTimeout(() => {
+          if (!isDirty() && status.textContent === "保存済み") status.textContent = "";
+        }, 1600);
+      }
     } catch (error) {
+      state.inFlight = false;
+      form.dataset.creditDirty = "true";
       status.textContent = error.message || "保存できませんでした。もう一度お試しください。";
       status.classList.add("text-red-600");
-      category.disabled = false;
-      note.disabled = false;
-      save.disabled = false;
-      cancel.disabled = false;
-      form.dataset.saving = "false";
+      save.textContent = "再試行";
+      save.hidden = false;
     }
+  }
+
+  category.addEventListener("change", () => scheduleSave(0));
+  note.addEventListener("input", () => scheduleSave(700));
+  note.addEventListener("blur", () => scheduleSave(0));
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    saveRow();
   });
+  form.dataset.creditDirty = "false";
+  const pendingDraft = pendingCreditDrafts[form.id];
+  if (pendingDraft) {
+    category.value = pendingDraft.category;
+    note.value = pendingDraft.note;
+    scheduleSave(700);
+  } else {
+    save.hidden = true;
+  }
 });
 pendingCreditDrafts = {};
+
+window.addEventListener("beforeunload", event => {
+  if (document.querySelector('[data-credit-dirty="true"]')) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
 
 document.addEventListener("click", event => {
   const editButton = event.target.closest("[data-cash-edit]");

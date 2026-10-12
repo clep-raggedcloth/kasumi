@@ -192,7 +192,15 @@ async def edit_transaction(
     year, month = txn.statement.year, txn.statement.month
     db.commit()
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JSONResponse({"ok": True})
+        context = _build_report_context(year, month, db)
+        return JSONResponse({
+            "ok": True,
+            "category": txn.category or "",
+            "user_note": txn.user_note or "",
+            "category_chart": context["category_chart"],
+            "category_spend_total": context["category_spend_total"],
+            "adjustment_total": context["adjustment_total"],
+        })
     return RedirectResponse(url=f"/report?year={year}&month={month}", status_code=303)
 
 

@@ -152,7 +152,11 @@ class CreditCategoryTests(unittest.TestCase):
         response = self.client.post(f"/transactions/{txn_id}/edit", headers=headers, data={
             "category": "日用品", "user_note": "洗剤",
         }, follow_redirects=False)
-        self.assertEqual((response.status_code, response.json()), (200, {"ok": True}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ok"], True)
+        self.assertEqual(response.json()["category"], "日用品")
+        self.assertEqual(response.json()["user_note"], "洗剤")
+        self.assertIn("category_chart", response.json())
         with Session(self.engine) as session:
             updated_at = session.scalar(select(MerchantCategoryDefault)).updated_at
             self.assertEqual(session.get(Transaction, txn_id).user_note, "洗剤")
